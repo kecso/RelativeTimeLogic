@@ -4,7 +4,7 @@
 
 var config = require('./config.default');
 
-config.authentication.enable = true;
+config.authentication.enable = false;
 config.client.appDir = './src/app';
 
 module.exports = config;
