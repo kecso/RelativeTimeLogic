@@ -185,12 +185,12 @@ define([], function () {
 
         function buildEvaluationQueue() {
             var i,
-                resultNames = Object.keys(verification.nodes.results);
+                resultPaths = Object.keys(verification.nodes.results);
 
             verification.evaluation.queue = [];
 
-            for (i = 0; i < resultNames.length; i++) {
-                addToEvaluationQueue(verification.core.getPath(verification.nodes.results[resultNames[i]]));
+            for (i = 0; i < resultPaths.length; i++) {
+                addToEvaluationQueue(resultPaths[i]);
             }
         }
 
@@ -324,7 +324,7 @@ define([], function () {
                         verification.nodes.raw[path] = children[i];
 
                         if (resultPaths.indexOf(path) !== -1) {
-                            verification.nodes.results[name] = children[i];
+                            verification.nodes.results[path] = children[i];
                         }
 
                         if (isSignal && signalNames.indexOf(name) !== -1) {
@@ -338,6 +338,8 @@ define([], function () {
         }
 
         function verify(core, data, association, project, callback) {
+            var result = {},
+                keys,i;
 
             verification.core = core;
             verification.input = {};
@@ -356,8 +358,11 @@ define([], function () {
                 buildEvaluationQueue();
                 processEvaluationQueue();
 
-                console.log(verification.evaluation.paths);
-                callback(new Error('not implemented yet'));
+                keys = Object.keys(verification.nodes.results);
+                for(i=0;i<keys.length;i++){
+                    result[verification.core.getAttribute(verification.nodes.raw[keys[i]],'name')] = verification.evaluation.paths[keys[i]];
+                }
+                callback(null,{outData:result});
             });
         }
 

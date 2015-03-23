@@ -50,9 +50,17 @@ define(['plugin/PluginConfig',
     RuntimeVerification.prototype.getConfigStructure = function () {
         return [
             {
+                'name': 'runName',
+                'displayName': 'Name of the Verification Run',
+                'description': 'The name of the current run, where the results will be stored for later checking',
+                'value': '',
+                'valueType': 'string',
+                'readOnly': false
+            },
+            {
                 'name': 'inputData',
                 'displayName': 'Input Data Table File',
-                'description': ' The file, that contains all observed data in each line separated by spaces',
+                'description': 'The file, that contains all observed data in each line separated by spaces',
                 'value': '',
                 'valueType': 'asset',
                 'readOnly': false
@@ -60,7 +68,7 @@ define(['plugin/PluginConfig',
             {
                 'name': 'inputAssociation',
                 'displayName': 'Input Data Table Association',
-                'description': ' The file, that contains a json object which represents a dictionary which connects the lines of the input data to logical signals',
+                'description': 'The file, that contains a json object which represents a dictionary which connects the lines of the input data to logical signals',
                 'value': '',
                 'valueType': 'asset',
                 'readOnly': false
@@ -77,6 +85,56 @@ define(['plugin/PluginConfig',
      *
      * @param {function(string, plugin.PluginResult)} callback - the result callback
      */
+
+    RuntimeVerification.prototype.processResult = function (result, callback) {
+        var self = this,
+            config = self.getCurrentConfig(),
+            /*ab2buffer = function (ab) {
+                var buffer = new Buffer(ab.byteLength),
+                    view = new Uint8Array(ab),
+                    i;
+                for (i = 0; i < buffer.length; ++i) {
+                    buffer[i] = view[i];
+                }
+                return buffer;
+            },*/
+            str2ab = function (str) {
+                var buf = new ArrayBuffer(str.length),
+                    bufView = new Uint8Array(buf),
+                    i, strLen;
+                for (i = 0, strLen = str.length; i < strLen; i++) {
+                    bufView[i] = str.charCodeAt(i);
+                }
+
+                //return ab2buffer(buf);
+                return buf;
+            };
+
+        self.blobClient.putFile((config.runName || 'run') + '.rvf', str2ab(JSON.stringify(result.outData,null,2)), function (err, hash) {
+            if (err) {
+                callback(err);
+                return;
+            }
+
+            //now we should load the run prototype to be able to instantiate it
+            //TODO maybe the loading of run ptototype should be more dynamic
+            self.core.loadByPath(self.rootNode, '/67231682/1683375814', function (err, runNode) {
+                if (err) {
+                    callback(err);
+                    return;
+                }
+
+                var myRun = self.core.createNode({parent: self.activeNode, base: runNode});
+
+                self.core.setAttribute(myRun, 'name', config.runName || 'run');
+                self.core.setAttribute(myRun, 'inputData', config.inputData);
+                self.core.setAttribute(myRun, 'dataAssociation', config.inputAssociation);
+                self.core.setAttribute(myRun, 'outputData', hash);
+                callback(null);
+            });
+        });
+    };
+
     RuntimeVerification.prototype.main = function (callback) {
         var self = this,
             currentConfig = self.getCurrentConfig(),
@@ -108,9 +166,23 @@ define(['plugin/PluginConfig',
                         return;
                     }
 
-                    self.setSuccess(true);
-                    self.save('verification run was added to');
-                    callback(null, self.result);
+                    self.processResult(result, function (err) {
+                        if (err) {
+                            fail(err);
+                            return;
+                        }
+
+
+                        self.save('verification run ' + currentConfig.runName + ' was created into project',
+                            function (err) {
+                                if (err) {
+                                    fail(err);
+                                    return;
+                                }
+                                self.setSuccess(true);
+                                callback(null, self.result);
+                            });
+                    });
                 });
             });
         });
