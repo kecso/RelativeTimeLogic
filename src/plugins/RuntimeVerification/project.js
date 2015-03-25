@@ -28,7 +28,7 @@ define([], function () {
 
         function calculateChangeBoolValue(signalName) {
             var i,
-                realData = verification.input.data[verification.input.association[signalName]],
+                realData = verification.input.data[verification.input.association[verification.association[signalName]]],
                 boolData = [];
 
             if (realData.length > 0) {
@@ -47,7 +47,7 @@ define([], function () {
         function calculateRangeBoolValue(signalName) {
             var i, params = JSON.parse(verification.core.getAttribute(verification.nodes.signals[signalName],
                     'mapFunctionParameters') || '{}'),
-                realData = verification.input.data[verification.input.association[signalName]],
+                realData = verification.input.data[verification.input.association[verification.association[signalName]]],
                 boolData = [];
 
             for (i = 0; i < realData.length; i++) {
@@ -71,7 +71,7 @@ define([], function () {
         function calculateChangeToBoolValue(signalName) {
             var i, params = JSON.parse(verification.core.getAttribute(verification.nodes.signals[signalName],
                     'mapFunctionParameters') || '{}'),
-                realData = verification.input.data[verification.input.association[signalName]],
+                realData = verification.input.data[verification.input.association[verification.association[signalName]]],
                 boolData = [],
                 isValue = false;
 
@@ -97,7 +97,7 @@ define([], function () {
         function calculateChangeFromBoolValue(signalName) {
             var i, params = JSON.parse(verification.core.getAttribute(verification.nodes.signals[signalName],
                     'mapFunctionParameters') || '{}'),
-                realData = verification.input.data[verification.input.association[signalName]],
+                realData = verification.input.data[verification.input.association[verification.association[signalName]]],
                 boolData = [],
                 isValue = false;
 
@@ -123,7 +123,7 @@ define([], function () {
         function calculateEnterRangeBoolValue(signalName) {
             var i, params = JSON.parse(verification.core.getAttribute(verification.nodes.signals[signalName],
                     'mapFunctionParameters') || '{}'),
-                realData = verification.input.data[verification.input.association[signalName]],
+                realData = verification.input.data[verification.input.association[verification.association[signalName]]],
                 boolData = [],
                 inRange = false;
 
@@ -149,7 +149,7 @@ define([], function () {
         function calculateLeaveRangeBoolValue(signalName) {
             var i, params = JSON.parse(verification.core.getAttribute(verification.nodes.signals[signalName],
                     'mapFunctionParameters') || '{}'),
-                realData = verification.input.data[verification.input.association[signalName]],
+                realData = verification.input.data[verification.input.association[verification.association[signalName]]],
                 boolData = [],
                 inRange = false;
 
@@ -170,6 +170,16 @@ define([], function () {
                 }
             }
             return boolData;
+        }
+
+        function createAssociationTable() {
+            var i,
+                inputNames = Object.keys(verification.nodes.signals);
+
+            verification.association = {};
+            for (i = 0; i < inputNames.length; i++) {
+                verification.association[inputNames[i]] = verification.core.getAttribute(verification.nodes.signals[inputNames[i]], 'dataAssociationName');
+            }
         }
 
         function evaluateSignals() {
@@ -339,7 +349,7 @@ define([], function () {
 
         function verify(core, data, association, project, callback) {
             var result = {},
-                keys,i;
+                keys, i;
 
             verification.core = core;
             verification.input = {};
@@ -354,15 +364,18 @@ define([], function () {
                     return;
                 }
 
+                console.warn(verification);
+                createAssociationTable();
                 evaluateSignals();
                 buildEvaluationQueue();
                 processEvaluationQueue();
 
                 keys = Object.keys(verification.nodes.results);
-                for(i=0;i<keys.length;i++){
-                    result[verification.core.getAttribute(verification.nodes.raw[keys[i]],'name')] = verification.evaluation.paths[keys[i]];
+                for (i = 0; i < keys.length; i++) {
+                    result[verification.core.getAttribute(verification.nodes.raw[keys[i]],
+                        'name')] = verification.evaluation.paths[keys[i]];
                 }
-                callback(null,{outData:result});
+                callback(null, {outData: result});
             });
         }
 
