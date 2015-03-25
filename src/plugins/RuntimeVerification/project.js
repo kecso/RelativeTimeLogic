@@ -314,11 +314,11 @@ define([], function () {
         function initializeNodes(next) {
 
             var resultPaths = verification.core.getMemberPaths(verification.nodes.project, 'result'),
-                signalNames = Object.keys(verification.input.association);
+                associationNames = Object.keys(verification.input.association);
 
 
             verification.core.loadChildren(verification.nodes.project, function (err, children) {
-                var i, path, name, isSignal, isOperator;
+                var i, path, name, isSignal, isOperator, association;
                 if (err) {
                     next(err);
                     return;
@@ -327,6 +327,7 @@ define([], function () {
                 for (i = 0; i < children.length; i++) {
                     path = verification.core.getPath(children[i]);
                     name = verification.core.getAttribute(children[i], 'name');
+                    association = verification.core.getAttribute(children[i], 'dataAssociationName');
                     isSignal = verification.core.isInstanceOf(children[i], 'logicSignal');
                     isOperator = verification.core.isInstanceOf(children[i], 'operator');
 
@@ -337,7 +338,7 @@ define([], function () {
                             verification.nodes.results[path] = children[i];
                         }
 
-                        if (isSignal && signalNames.indexOf(name) !== -1) {
+                        if (isSignal && associationNames.indexOf(association) !== -1) {
                             verification.nodes.signals[name] = children[i];
                         }
                     }

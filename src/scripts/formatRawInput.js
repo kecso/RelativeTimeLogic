@@ -6,7 +6,8 @@
 //create a two dimensional array from the raw input ans saves it as a json object serialization
 
 var FS = require('fs'),
-    input = FS.readFileSync('current.txt', 'utf8'),
+    inputName = 'Ibus1',
+    input = FS.readFileSync(inputName+'.txt', 'utf8'),
     i, j,
     output = [],
     outputLine = [],
@@ -39,4 +40,4 @@ for (i = 0; i < input.length; i++) {
     }
 }
 
-FS.writeFileSync('current.format.json',JSON.stringify(output));
+FS.writeFileSync(inputName+'.format.json',JSON.stringify(output));
