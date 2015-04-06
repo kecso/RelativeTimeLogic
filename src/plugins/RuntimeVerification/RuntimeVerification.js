@@ -64,14 +64,6 @@ define(['plugin/PluginConfig',
                 'value': '',
                 'valueType': 'asset',
                 'readOnly': false
-            },
-            {
-                'name': 'inputAssociation',
-                'displayName': 'Input Data Table Association',
-                'description': 'The file, that contains a json object which represents a dictionary which connects the lines of the input data to logical signals',
-                'value': '',
-                'valueType': 'asset',
-                'readOnly': false
             }
         ];
     };
@@ -89,15 +81,6 @@ define(['plugin/PluginConfig',
     RuntimeVerification.prototype.processResult = function (result, callback) {
         var self = this,
             config = self.getCurrentConfig(),
-            /*ab2buffer = function (ab) {
-                var buffer = new Buffer(ab.byteLength),
-                    view = new Uint8Array(ab),
-                    i;
-                for (i = 0; i < buffer.length; ++i) {
-                    buffer[i] = view[i];
-                }
-                return buffer;
-            },*/
             str2ab = function (str) {
                 var buf = new ArrayBuffer(str.length),
                     bufView = new Uint8Array(buf),
@@ -110,29 +93,62 @@ define(['plugin/PluginConfig',
                 return buf;
             };
 
-        self.blobClient.putFile((config.runName || 'run') + '.rvf', str2ab(JSON.stringify(result.outData,null,2)), function (err, hash) {
-            if (err) {
-                callback(err);
-                return;
-            }
-
-            //now we should load the run prototype to be able to instantiate it
-            //TODO maybe the loading of run ptototype should be more dynamic
-            self.core.loadByPath(self.rootNode, '/67231682/1683375814', function (err, runNode) {
+        self.blobClient.putFile((config.runName || 'run') + '.rvf',
+            str2ab(JSON.stringify(result, null, 2)),
+            function (err, hash) {
                 if (err) {
                     callback(err);
                     return;
                 }
 
-                var myRun = self.core.createNode({parent: self.activeNode, base: runNode});
+                //now we should load the run prototype to be able to instantiate it
+                //TODO maybe the loading of run ptototype should be more dynamic
+                self.core.loadByPath(self.rootNode, '/720793692/2081646032', function (err, runNode) {
+                    if (err) {
+                        callback(err);
+                        return;
+                    }
 
-                self.core.setAttribute(myRun, 'name', config.runName || 'run');
-                self.core.setAttribute(myRun, 'inputData', config.inputData);
-                self.core.setAttribute(myRun, 'dataAssociation', config.inputAssociation);
-                self.core.setAttribute(myRun, 'outputData', hash);
-                callback(null);
+                    var myRun = self.core.createNode({parent: self.activeNode, base: runNode});
+
+                    if (config.runName) {
+                        self.core.setAttribute(myRun, 'name', config.runName);
+                    }
+                    self.core.setAttribute(myRun, 'input', config.inputData);
+                    self.core.setAttribute(myRun, 'output', hash);
+                    callback(null);
+                });
             });
-        });
+    };
+
+    RuntimeVerification.prototype.createVerdict = function (nodes, output) {
+        //there are three types of verdict
+        //the always true -> statement is Globally True
+        //the only a few false (less than half the time) -> statement is Not Globally True
+        // the sometime true (less than third is true) -> ... occurred n times
+
+        var i, j, occurrence, name,
+            self = this;
+
+        for (i = 0; i < nodes.length; i++) {
+            name = self.core.getAttribute(nodes[i], 'name');
+            occurrence = 0;
+            for (j = 0; j < output[name].length; j++) {
+                if (output[name][j] === 1) {
+                    occurrence = occurrence + 1;
+                }
+            }
+
+            if (occurrence === output[name].length) {
+                self.createMessage(nodes[i], 'Statement [' + name + '] is GLOBALLY true');
+            } else if (occurrence === 0) {
+                self.createMessage(nodes[i], 'Statement [' + name + '] is GLOBALLY false');
+            } else if (occurrence < output[name].length / 3) {
+                self.createMessage(nodes[i], 'Event [' + name + '] occurred ' + occurrence + ' times');
+            } else {
+                self.createMessage(nodes[i], 'Statement [' + name + '] was not always true');
+            }
+        }
     };
 
     RuntimeVerification.prototype.main = function (callback) {
@@ -143,6 +159,7 @@ define(['plugin/PluginConfig',
             inputAssociation,
             fail = function (error) {
                 self.result.setSuccess(false);
+                self.result.setError(error);
                 callback(error, self.result);
             };
 
@@ -152,37 +169,31 @@ define(['plugin/PluginConfig',
                 return;
             }
             inputData = data;
-            self.blobClient.getObject(currentConfig.inputAssociation, function (err, data) {
+
+            verification.verify(self.core, inputData, self.activeNode, function (err, result) {
+                //TODO result should contain the output data table and the run node we should update and save
                 if (err) {
                     fail(err);
                     return;
                 }
-                inputAssociation = data;
 
-                verification.verify(self.core, inputData, inputAssociation, self.activeNode, function (err, result) {
-                    //TODO result should contain the output data table and the run node we should update and save
+                self.processResult(result.output, function (err) {
                     if (err) {
                         fail(err);
                         return;
                     }
 
-                    self.processResult(result, function (err) {
-                        if (err) {
-                            fail(err);
-                            return;
-                        }
+                    self.createVerdict(result.nodes, result.output);
 
-
-                        self.save('verification run ' + currentConfig.runName + ' was created into project',
-                            function (err) {
-                                if (err) {
-                                    fail(err);
-                                    return;
-                                }
-                                self.setSuccess(true);
-                                callback(null, self.result);
-                            });
-                    });
+                    self.save('verification run ' + currentConfig.runName + ' was created into project',
+                        function (err) {
+                            if (err) {
+                                fail(err);
+                                return;
+                            }
+                            self.result.setSuccess(true);
+                            callback(null, self.result);
+                        });
                 });
             });
         });

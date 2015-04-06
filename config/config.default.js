@@ -5,7 +5,7 @@
 
 var config = require('webgme/config/config.default');
 
-config.server.port = 80;
+config.server.port = 9090;
 
 config.plugin.basePaths.push('./src/plugins');
 
