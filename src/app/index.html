@@ -1,27 +1,171 @@
 <html>
 <head>
+    <link href="/extlib/src/lib/flot/examples/examples.css" rel="stylesheet" type="text/css">
     <script type="text/javascript">
         var myInit = function () {
             console.log('myInit function was called');
+            require(['/extlib/src/lib/superagent/superagent-1.1.0.js'],
+                    function (Superagent) {
+                        function harmonizeData(inData) {
+                            //timeline and raw data in data field
+                            var timeline = [],
+                                    i, j,outData = {timeLine:[],data:{}},
+                                    lastValue,value,keys;
+                            keys = Object.keys(inData.data);
+                            for(i=0;i<inData.timeLine.length;i++){
+                                timeline.push(false);
+                            }
+                            timeline[0] = true;
+                            timeline[timeline.length-1] = true;
+                            for(i=0;i<keys.length;i++){
+                                value = Number(inData.data[keys[i]][0]);
+                                lastValue = value;
+                                for(j=0;j<inData.data[keys[i]].length;j++){
+                                    value = Number(inData.data[keys[i]][j]);
+                                    if(lastValue !== value){
+                                        timeline[j]=true;
+                                        lastValue = value;
+                                    }
+                                }
+                            }
+                            for(i=0;i<keys.length;i++){
+                                outData.data[keys[i]]=[];
+                                for(j=0;j<inData.data[keys[i]].length;j++){
+                                    if(timeline[j]){
+                                        outData.data[keys[i]].push(Number(inData.data[keys[i]][j]));
+                                    }
+                                }
+                            }
 
-            // you can use GME.classes.Client from this point
-            console.log(GME);
+                            for(i=0;i<inData.timeLine.length;i++){
+                                if(timeline[i]){
+                                    outData.timeLine.push(inData.timeLine[i]);
+                                }
+                            }
+                            return outData;
+                        }
+                        function getPlotData(raw){
+                            var plot = [],
+                                    i, j,keys,series;
+                            keys = Object.keys(raw.data);
+                            for(i=0;i<keys.length;i++){
+                                series = [];
+                                for(j=0;j<raw.timeLine.length;j++){
+                                    series.push([raw.timeLine[j],raw.data[keys[i]][j]]);
+                                }
+                                plot.push(series);
+                            }
+                            return plot;
+                        }
+                        function getCurrentPlot(raw){
+                            var plot = [],
+                                    i, j,keys,series;
+                            keys = Object.keys(raw.data);
+                            for(i=0;i<keys.length;i++){
+                                if(keys[i][0] === 'I'){
+                                    series = [];
+                                    for(j=0;j<raw.timeLine.length;j++){
+                                        series.push([raw.timeLine[j],raw.data[keys[i]][j]]);
+                                    }
+                                    plot.push(series);
+                                }
+                            }
+                            return plot;
+                        }
 
-            // TODO: add some client examples
+                        function getVoltagePlot(raw){
+                            var plot = [],
+                                    i, j,keys,series;
+                            keys = Object.keys(raw.data);
+                            for(i=0;i<keys.length;i++){
+                                if(keys[i][0] !== 'I'){
+                                    series = [];
+                                    for(j=0;j<raw.timeLine.length;j++){
+                                        series.push([raw.timeLine[j],raw.data[keys[i]][j]]);
+                                    }
+                                    plot.push(series);
+                                }
+                            }
+                            return plot;
+                        }
+
+                        function plotting(raw){
+                            var keys = Object.keys(raw.data),
+                                    i, j, k,
+                                    key,
+                                    placeholders = [],
+                                    domElement,
+                                    dataSeries = [],
+                                    singleLine = {},
+                                    parentElement = document.getElementById('content');
+
+                            for(i=0;i<keys.length;i++){
+                                key = keys[i].split('_');
+                                if(placeholders.indexOf(key[0]) === -1){
+                                    //new placeholder
+                                    placeholders.push(key[0]);
+//                                    domElement = document.createElement("DIV");
+//                                    domElement.setAttribute("class","demo-container");
+//                                    domElement.innerHTML = "<div class=\"demo-placeholder\" id=\""+key[0]+"Placeholder\"><div>";
+//                                    $('#addCheckbox').click(function() {
+//                                        var text = $('#newCheckText').val();
+//                                        $('#checkboxes').append('<input type="checkbox" /> ' + text + '<br />');
+//                                    });
+//                                    parentElement.appendChild(domElement);
+                                    $('#content').append('<input type="checkbox" id="'+key[0]+'Check" myCont="'+key[0]+'Container" />'+key[0]+'<br /><div class="demo-container" id="'+key[0]+'Container"><div class="demo-placeholder" id="'+key[0]+'Placeholder"></div></div>');
+                                    $('#'+key[0]+'Check').click(function(){
+                                       if($(this).is(':checked')){
+                                           $('#'+$(this).attr('myCont')).show();
+                                       } else {
+                                           $('#'+$(this).attr('myCont')).hide();
+                                       }
+                                    });
+                                    $('#'+key[0]+'Check').prop('checked',true);
+
+                                }
+                            }
+
+                            for(i=0;i<placeholders.length;i++){
+                                dataSeries = [];
+                                for(j=0;j<keys.length;j++){
+                                    key = keys[j].split('_');
+                                    if(placeholders[i] === key[0]){
+                                        singleLine = {label:keys[j],data:[]};
+                                        for(k=0;k<raw.timeLine.length;k++){
+                                            singleLine.data.push([raw.timeLine[k],raw.data[keys[j]][k]]);
+                                        }
+                                        dataSeries.push(singleLine);
+                                    }
+                                }
+                                $.plot('#'+placeholders[i]+"Placeholder",dataSeries,{});
+                            }
+                        }
+
+                        Superagent
+                                .get('/extlib/src/examples/1ph2g.json')
+                                .end(function (err, res) {
+                                    if (err) {
+                                        console.log(err);
+                                    } else {
+                                        plotting(res.body);
+                                    }
+                                });
+                    });
         };
 
     </script>
 
+    <script type="text/javascript" src="/extlib/node_modules/requirejs/require.js"></script>
     <script type="text/javascript" src="/extlib/node_modules/webgme/dist/webgme.classes.build.js"></script>
+    <script language="javascript" type="text/javascript" src="/extlib/src/lib/flot/jquery.js"></script>
+    <script language="javascript" type="text/javascript" src="/extlib/src/lib/flot/jquery.flot.js"></script>
+    <!--<script type="text/javascript" src="/extlib/node_modules/chart.js/Chart.js"></script>
+    <script type="text/javascript" src="/extlib/node_modules/superagent/lib/client.js"></script>-->
 
 </head>
 
 <body on-gme-init="myInit()">
-
-Test page.
-See console for messages.
-
-
-<a href="/logout">Logout</a>
+<div id="content">
+</div>
 </body>
 </html>
