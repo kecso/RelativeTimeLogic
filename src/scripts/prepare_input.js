@@ -8,39 +8,13 @@ var FS = require('fs'),
     inputDir = './src/scripts/inputdir',
     inputNames = FS.readdirSync(inputDir),
     input,
-    i, j, k,
+    i, j,
     output = {data:{}},
     outputName,
-    inputLine,
-    inputSize,
-    inputOffset;
+    inputLine;
 
-//for(i=0;i<inputNames.length;i++){
-//    input = FS.readFileSync(inputDir+'/'+inputNames[i], 'utf8');
-//    input = input.split('\n');
-//
-//    if(!output.timeLine){
-//        inputLine = input[0];
-//        inputLine = inputLine.split(',');
-//
-//        output.timeLine = inputLine;
-//    }
-//
-//    //phase-lines
-//    for(j=1;j<4;j++){
-//        inputLine = input[j] || [];
-//        inputLine = inputLine.split(',');
-//        if(inputLine.length === output.timeLine.length){
-//            outputName = inputNames[i].slice(0,-4)+'_ph'+j;
-//            output.data[outputName] = inputLine;
-//        }
-//    }
-//}
-
-//TODO temporary sized effort
-inputSize = 100;
-inputOffset = 3950;
 for(i=0;i<inputNames.length;i++){
+    console.log(inputNames[i]);
     input = FS.readFileSync(inputDir+'/'+inputNames[i], 'utf8');
     input = input.split('\n');
 
@@ -48,24 +22,19 @@ for(i=0;i<inputNames.length;i++){
         inputLine = input[0];
         inputLine = inputLine.split(',');
 
-        output.timeLine = [];
-        for(j=0;j<inputSize;j++){
-            output.timeLine.push(inputLine[j]);
-        }
+        output.timeLine = inputLine;
     }
 
     //phase-lines
     for(j=1;j<4;j++){
-        inputLine = input[j] || [];
+        inputLine = input[j] || '';
         inputLine = inputLine.split(',');
-        if(inputLine.length >= inputSize+inputOffset){
+        if(inputLine.length === output.timeLine.length){
             outputName = inputNames[i].slice(0,-4)+'_ph'+j;
-            output.data[outputName] = [];
-            for(k=inputOffset;k<inputSize+inputOffset;k++){
-                output.data[outputName].push(inputLine[k]);
-            }
+            output.data[outputName] = inputLine;
         }
     }
 }
+
 
 FS.writeFileSync('result.json',JSON.stringify(output,null,2));
