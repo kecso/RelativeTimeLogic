@@ -93,7 +93,7 @@ define(['plugin/PluginConfig',
                 return buf;
             };
 
-        self.blobClient.putFile((config.runName || 'run') + '.rvf',
+        self.blobClient.putFile((config.runName || 'run') + '.json',
             str2ab(JSON.stringify(result, null, 2)),
             function (err, hash) {
                 if (err) {
@@ -121,30 +121,29 @@ define(['plugin/PluginConfig',
             });
     };
 
-    RuntimeVerification.prototype.createVerdict = function (nodes, output) {
+    RuntimeVerification.prototype.createVerdict = function (nodes, output, input) {
         //there are three types of verdict
         //the always true -> statement is Globally True
         //the only a few false (less than half the time) -> statement is Not Globally True
         // the sometime true (less than third is true) -> ... occurred n times
 
-        var i, j, occurrence, name,
-            self = this;
+        var i, j, occurrences = [], name, self = this;
 
         for (i = 0; i < nodes.length; i++) {
             name = self.core.getAttribute(nodes[i], 'name');
-            occurrence = 0;
+            occurrences = [];
             for (j = 0; j < output[name].length; j++) {
                 if (output[name][j] === 1) {
-                    occurrence = occurrence + 1;
+                    occurrences.push(input.timeLine[j]);
                 }
             }
 
-            if (occurrence === output[name].length) {
+            if (occurrences.length === output[name].length) {
                 self.createMessage(nodes[i], 'Statement [' + name + '] is GLOBALLY true');
-            } else if (occurrence === 0) {
+            } else if (occurrences.length === 0) {
                 self.createMessage(nodes[i], 'Statement [' + name + '] is GLOBALLY false');
-            } else if (occurrence < output[name].length / 3) {
-                self.createMessage(nodes[i], 'Event [' + name + '] occurred ' + occurrence + ' times');
+            } else if (occurrences.length < 10) {
+                self.createMessage(nodes[i], 'Event [' + name + '] occurred at ' + occurrences + 's');
             } else {
                 self.createMessage(nodes[i], 'Statement [' + name + '] was not always true');
             }
@@ -183,7 +182,7 @@ define(['plugin/PluginConfig',
                         return;
                     }
 
-                    self.createVerdict(result.nodes, result.output);
+                    self.createVerdict(result.nodes, result.output, inputData);
 
                     self.save('verification run ' + currentConfig.runName + ' was created into project',
                         function (err) {

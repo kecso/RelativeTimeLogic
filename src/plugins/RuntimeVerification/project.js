@@ -12,12 +12,12 @@ define([], function () {
                 core = verification.core,
                 inputData = verification.input.data[core.getAttribute(node, 'dataId')],
                 outputData = [],
-                min = core.getAttribute(node, 'min'),
-                max = core.getAttribute(node, 'max'),
+                min = Number(core.getAttribute(node, 'min')),
+                max = Number(core.getAttribute(node, 'max')),
                 i;
 
             for (i = 0; i < inputData.length; i++) {
-                if (inputData[i] >= min && inputData[i] <= max) {
+                if (Number(inputData[i]) >= min && Number(inputData[i]) <= max) {
                     outputData.push(1);
                 } else {
                     outputData.push(0);
@@ -167,29 +167,24 @@ define([], function () {
                     var bound = isUpper ? interval.upper : interval.lower,
                         result = 0,
                         offset = 0;
-                    if (bound.value) {
+                    if (bound.infinite) {
+                        if (bound.isPast) {
+                            result = 0;
+                        } else {
+                            result = verification.input.timeLine.length - 1;
+                        }
+                    } else if (bound.value !== undefined && bound.value != null) {
                         result = bound.value;
 
                         if (bound.isPast) {
                             result = -1 * result;
                         }
 
-                        if (bound.infinite) {
-                            if (bound.isPast) {
-                                result = -1 * index;
+                        if (bound.isExclusive) {
+                            if (isUpper) {
+                                result = result - 1;
                             } else {
-                                result = verification.input.timeLine.length - (index + 1);
-                                if (result < 0) {
-                                    result = 0;
-                                }
-                            }
-                        } else {
-                            if (bound.isExclusive) {
-                                if (isUpper) {
-                                    result = result - 1;
-                                } else {
-                                    result = result + 1;
-                                }
+                                result = result + 1;
                             }
                         }
                     } else if (bound.event) {
@@ -213,6 +208,7 @@ define([], function () {
                                 offset = offset + 1;
                             }
                         }
+                        result = offset;
                     }
 
                     return Number(result);
@@ -221,6 +217,9 @@ define([], function () {
             result.lower = calculateBound(false);
             result.upper = calculateBound(true);
 
+            if (result.lower > result.upper) {
+                result.lower = verification.input.timeLine.length;
+            }
             return result;
 
         }
@@ -240,7 +239,15 @@ define([], function () {
                 for (j = i + interval.lower; j <= i + interval.upper; j++) {
                     if (input[j] === 0) {
                         holds = false;
+                        break;
                     }
+                }
+
+                if (i + interval.lower >= input.length) {
+                    holds = false;
+                }
+                if (i + interval.upper < 0) {
+                    holds = false;
                 }
 
                 if (holds) {
@@ -258,7 +265,7 @@ define([], function () {
                 core = verification.core,
                 input = verification.evaluation.paths[core.getPointerPath(node, 'arg')],
                 output = [],
-                occured,
+                occurred,
                 min = core.getAttribute(node, 'min'),
                 max = core.getAttribute(node, 'max'),
                 i, j,
@@ -266,20 +273,20 @@ define([], function () {
 
             for (i = 0; i < input.length; i++) {
                 interval = getInterval(path, i);
-                occured = 0;
+                occurred = 0;
                 for (j = i + interval.lower; j <= i + interval.upper; j++) {
                     if (input[j] === 1) {
-                        occured = occured + 1;
+                        occurred = occurred + 1;
                     }
                 }
 
-                if (occured > 0) {
-                    if (occured >= min) {
+                if (occurred > 0) {
+                    if (occurred >= min) {
                         if (max === 0) {
                             output.push(1);
                         } else if (max < min) {
                             output.push(0);
-                        } else if (occured <= max) {
+                        } else if (occurred <= max) {
                             output.push(1);
                         } else {
                             output.push(0);
@@ -360,7 +367,7 @@ define([], function () {
                     verification.nodes.results[path] = node;
                 }
 
-                if(isSignal) {
+                if (isSignal) {
                     verification.nodes.signals[name] = node;
                 }
             }
@@ -439,7 +446,7 @@ define([], function () {
 
         function verify(core, input, project, callback) {
             var result = {},
-                keys, i,nodes=[];
+                keys, i, nodes = [];
 
             verification.core = core;
             verification.input = input;
@@ -462,7 +469,7 @@ define([], function () {
                         'name')] = verification.evaluation.paths[keys[i]];
                     nodes.push(verification.nodes.results[keys[i]]);
                 }
-                callback(null, {nodes:nodes, output: result});
+                callback(null, {nodes: nodes, output: result});
             });
         }
 

@@ -1,170 +1,263 @@
 <html>
 <head>
     <link href="/extlib/src/lib/flot/examples/examples.css" rel="stylesheet" type="text/css">
-    <script type="text/javascript">
-        var myInit = function () {
-            console.log('myInit function was called');
-            require(['/extlib/src/lib/superagent/superagent-1.1.0.js'],
-                    function (Superagent) {
-                        function harmonizeData(inData) {
-                            //timeline and raw data in data field
-                            var timeline = [],
-                                    i, j,outData = {timeLine:[],data:{}},
-                                    lastValue,value,keys;
-                            keys = Object.keys(inData.data);
-                            for(i=0;i<inData.timeLine.length;i++){
-                                timeline.push(false);
-                            }
-                            timeline[0] = true;
-                            timeline[timeline.length-1] = true;
-                            for(i=0;i<keys.length;i++){
-                                value = Number(inData.data[keys[i]][0]);
-                                lastValue = value;
-                                for(j=0;j<inData.data[keys[i]].length;j++){
-                                    value = Number(inData.data[keys[i]][j]);
-                                    if(lastValue !== value){
-                                        timeline[j]=true;
-                                        lastValue = value;
-                                    }
-                                }
-                            }
-                            for(i=0;i<keys.length;i++){
-                                outData.data[keys[i]]=[];
-                                for(j=0;j<inData.data[keys[i]].length;j++){
-                                    if(timeline[j]){
-                                        outData.data[keys[i]].push(Number(inData.data[keys[i]][j]));
-                                    }
-                                }
-                            }
-
-                            for(i=0;i<inData.timeLine.length;i++){
-                                if(timeline[i]){
-                                    outData.timeLine.push(inData.timeLine[i]);
-                                }
-                            }
-                            return outData;
-                        }
-                        function getPlotData(raw){
-                            var plot = [],
-                                    i, j,keys,series;
-                            keys = Object.keys(raw.data);
-                            for(i=0;i<keys.length;i++){
-                                series = [];
-                                for(j=0;j<raw.timeLine.length;j++){
-                                    series.push([raw.timeLine[j],raw.data[keys[i]][j]]);
-                                }
-                                plot.push(series);
-                            }
-                            return plot;
-                        }
-                        function getCurrentPlot(raw){
-                            var plot = [],
-                                    i, j,keys,series;
-                            keys = Object.keys(raw.data);
-                            for(i=0;i<keys.length;i++){
-                                if(keys[i][0] === 'I'){
-                                    series = [];
-                                    for(j=0;j<raw.timeLine.length;j++){
-                                        series.push([raw.timeLine[j],raw.data[keys[i]][j]]);
-                                    }
-                                    plot.push(series);
-                                }
-                            }
-                            return plot;
-                        }
-
-                        function getVoltagePlot(raw){
-                            var plot = [],
-                                    i, j,keys,series;
-                            keys = Object.keys(raw.data);
-                            for(i=0;i<keys.length;i++){
-                                if(keys[i][0] !== 'I'){
-                                    series = [];
-                                    for(j=0;j<raw.timeLine.length;j++){
-                                        series.push([raw.timeLine[j],raw.data[keys[i]][j]]);
-                                    }
-                                    plot.push(series);
-                                }
-                            }
-                            return plot;
-                        }
-
-                        function plotting(raw){
-                            var keys = Object.keys(raw.data),
-                                    i, j, k,
-                                    key,
-                                    placeholders = [],
-                                    domElement,
-                                    dataSeries = [],
-                                    singleLine = {},
-                                    parentElement = document.getElementById('content');
-
-                            for(i=0;i<keys.length;i++){
-                                key = keys[i].split('_');
-                                if(placeholders.indexOf(key[0]) === -1){
-                                    //new placeholder
-                                    placeholders.push(key[0]);
-//                                    domElement = document.createElement("DIV");
-//                                    domElement.setAttribute("class","demo-container");
-//                                    domElement.innerHTML = "<div class=\"demo-placeholder\" id=\""+key[0]+"Placeholder\"><div>";
-//                                    $('#addCheckbox').click(function() {
-//                                        var text = $('#newCheckText').val();
-//                                        $('#checkboxes').append('<input type="checkbox" /> ' + text + '<br />');
-//                                    });
-//                                    parentElement.appendChild(domElement);
-                                    $('#content').append('<input type="checkbox" id="'+key[0]+'Check" myCont="'+key[0]+'Container" />'+key[0]+'<br /><div class="demo-container" id="'+key[0]+'Container"><div class="demo-placeholder" id="'+key[0]+'Placeholder"></div></div>');
-                                    $('#'+key[0]+'Check').click(function(){
-                                       if($(this).is(':checked')){
-                                           $('#'+$(this).attr('myCont')).show();
-                                       } else {
-                                           $('#'+$(this).attr('myCont')).hide();
-                                       }
-                                    });
-                                    $('#'+key[0]+'Check').prop('checked',true);
-
-                                }
-                            }
-
-                            for(i=0;i<placeholders.length;i++){
-                                dataSeries = [];
-                                for(j=0;j<keys.length;j++){
-                                    key = keys[j].split('_');
-                                    if(placeholders[i] === key[0]){
-                                        singleLine = {label:keys[j],data:[]};
-                                        for(k=0;k<raw.timeLine.length;k++){
-                                            singleLine.data.push([raw.timeLine[k],raw.data[keys[j]][k]]);
-                                        }
-                                        dataSeries.push(singleLine);
-                                    }
-                                }
-                                $.plot('#'+placeholders[i]+"Placeholder",dataSeries,{});
-                            }
-                        }
-
-                        Superagent
-                                .get('/extlib/src/examples/1ph2g.json')
-                                .end(function (err, res) {
-                                    if (err) {
-                                        console.log(err);
-                                    } else {
-                                        plotting(res.body);
-                                    }
-                                });
-                    });
-        };
-
-    </script>
-
-    <script type="text/javascript" src="/extlib/node_modules/requirejs/require.js"></script>
+    <!--includes-->
     <script type="text/javascript" src="/extlib/node_modules/webgme/dist/webgme.classes.build.js"></script>
     <script language="javascript" type="text/javascript" src="/extlib/src/lib/flot/jquery.js"></script>
     <script language="javascript" type="text/javascript" src="/extlib/src/lib/flot/jquery.flot.js"></script>
-    <!--<script type="text/javascript" src="/extlib/node_modules/chart.js/Chart.js"></script>
-    <script type="text/javascript" src="/extlib/node_modules/superagent/lib/client.js"></script>-->
+    <!--url parameter handling-->
+    <script type="text/javascript">
+        var QueryString = function () {
+            // This function is anonymous, is executed immediately and
+            // the return value is assigned to QueryString!
+            function decodeChars(instring) {
+                return instring.replace(/%2f/g, "/");
+            }
 
+            var query_string = {},
+                    query = window.location.search.substring(1),
+                    vars = query.split("&"),
+                    i,
+                    pair,
+                    arr;
+            for (i = 0; i < vars.length; i++) {
+                pair = vars[i].split("=");
+                // If first entry with this name
+                if (typeof query_string[pair[0]] === "undefined") {
+                    query_string[pair[0]] = pair[1];
+                    // If second entry with this name
+                } else if (typeof query_string[pair[0]] === "string") {
+                    arr = [query_string[pair[0]], pair[1]];
+                    query_string[pair[0]] = arr;
+                    // If third or later entry with this name
+                } else {
+                    query_string[pair[0]].push(pair[1]);
+                }
+            }
+            vars = Object.keys(query_string);
+            for (i = 0; i < vars.length; i++) {
+                if (query_string[vars[i]] !== undefined && query_string[vars[i]] !== 'undefined') {
+                    query_string[vars[i]] = decodeChars(query_string[vars[i]]);
+                } else {
+                    query_string[vars[i]] = null;
+                }
+            }
+            return query_string;
+        }();
+    </script>
+    <!--document ready function-->
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('select').hide();
+            $('#content').hide();
+        });
+    </script>
+    <!--select box handling-->
+    <script type="text/javascript">
+        function initializeSelectBox(changeFunction) {
+            $('select').change(changeFunction);
+        }
+        function updateSelectBox(listOfElements) {
+            var currentlySelected = $('select option:selected').text() || "", i,
+                    innerHtml = "";
+            for (i = 0; i < listOfElements.length; i++) {
+                if (listOfElements[i] === currentlySelected) {
+                    innerHtml += '<option selected>' + listOfElements[i] + '</option>';
+                } else {
+                    innerHtml += '<option>' + listOfElements[i] + '</option>';
+                }
+            }
+            $('select').empty().append(innerHtml).attr('size', listOfElements.length).show();
+            $("option:selected").prop("selected", false);
+        }
+
+    </script>
+    <!--plotting-->
+    <script type="text/javascript">
+        function plotting(raw) {
+            var keys = Object.keys(raw.data),
+                    i, j, k,
+                    key,
+                    placeholders = [],
+                    dataSeries = [],
+                    singleLine = {},
+                    content = $('#content');
+
+            content.empty();
+
+            for (i = 0; i < keys.length; i++) {
+                key = keys[i].split('_');
+                if (placeholders.indexOf(key[0]) === -1) {
+                    //new placeholder
+                    placeholders.push(key[0]);
+                    content.append('<input type="checkbox" id="' + key[0] + 'Check" myCont="' + key[0] +
+                                         'Container" />' + key[0] + '<br /><div class="demo-container" id="' + key[0] +
+                                         'Container"><div class="demo-placeholder" id="' + key[0] +
+                                         'Placeholder"></div></div>');
+                    $('#' + key[0] + 'Check').click(function () {
+                        if ($(this).is(':checked')) {
+                            $('#' + $(this).attr('myCont')).show();
+                        } else {
+                            $('#' + $(this).attr('myCont')).hide();
+                        }
+                    }).prop('checked', true);
+
+                }
+            }
+
+            for (i = 0; i < placeholders.length; i++) {
+                dataSeries = [];
+                for (j = 0; j < keys.length; j++) {
+                    key = keys[j].split('_');
+                    if (placeholders[i] === key[0]) {
+                        singleLine = {label: keys[j], data: []};
+                        for (k = 0; k < raw.timeLine.length; k++) {
+                            singleLine.data.push([raw.timeLine[k], raw.data[keys[j]][k]]);
+                        }
+                        dataSeries.push(singleLine);
+                    }
+                }
+                $.plot('#' + placeholders[i] + "Placeholder", dataSeries, {});
+                content.show();
+            }
+        }
+    </script>
+    <!--webgme territory loading and event handling-->
+    <script type="text/javascript">
+        var logger,
+                runs = {},
+                client,
+                blobClient,
+                UI = {},
+                patterns={};
+        function checkParameters() {
+            if (typeof QueryString.project === 'string' &&
+                QueryString.project !== '' &&
+                QueryString.project !== 'undefined' &&
+                typeof QueryString.path === 'string' &&
+                QueryString.path !== 'undefined') {
+                return true;
+            }
+            return false;
+        }
+        function selectionChanged(/*event*/) {
+            //the user selected a different run, so we re-create the plotting area
+            var selectedRun = $('select option:selected').text(),
+                    runNode;
+            selectedRun = selectedRun.match(/\[[^\[\]]*\]/g);
+            if (selectedRun.length) {
+                selectedRun = selectedRun[0];
+                selectedRun = selectedRun.substring(1, selectedRun.length - 1);
+            } else {
+                selectedRun = null;
+            }
+
+            if (selectedRun) {
+                runNode = client.getNode(selectedRun);
+                if (runNode) {
+                    //gather the input and output plot files
+                    blobClient.getObject(runNode.getAttribute('input'), function (err, inputJson) {
+                        if (!err && inputJson) {
+                            blobClient.getObject(runNode.getAttribute('output'), function (err, outputJson) {
+                                var i, keys;
+                                if (!err && outputJson) {
+                                    keys = Object.keys(outputJson);
+                                    for (i = 0; i < keys.length; i++) {
+                                        inputJson.data[keys[i]] = outputJson[keys[i]];
+                                    }
+                                }
+                                plotting(inputJson);
+                            });
+                        }
+                    });
+                }
+            }
+        }
+        function territoryEvent(events) {
+            var i,node,base, list_changed = false,list = [],keys;
+            for(i=0;i<events.length;i++){
+                if(events[i].etype === 'load'){
+                    node = client.getNode(events[i].eid);
+                    if(node){
+                        base = client.getNode(node.getBaseId());
+                        if(base){
+                            if(base.getAttribute('name') === 'Run'){
+                                //yes it is a Run instance
+                                runs[events[i].eid] = node.getAttribute('name')+' ['+events[i].eid+']';
+                                list_changed = true;
+                            }
+                        } else {
+                            console.log('where is the base of '+events[i].eid+' ???');
+                        }
+                    } else {
+                        console.log('where is node '+events[i].eid+' ???');
+                    }
+                } else if(events[i].etype === 'unload'){
+                    if(runs[events[i].eid]){
+                        delete runs[events[i].eid];
+                        list_changed = true;
+                    }
+                }
+            }
+
+            if(list_changed){
+                keys=Object.keys(runs);
+                for(i=0;i<keys.length;i++){
+                    list.push(runs[keys[i]]);
+                }
+                updateSelectBox(list);
+            }
+        }
+        function initializeWebGME(callback) {
+            //WebGMEGlobal = {}; //hack right now
+            patterns[QueryString.path] = {children:1};
+            client = new GME.classes.Client(GME.gmeConfig);
+            blobClient = new GME.classes.BlobClient();
+            client.connectToDatabaseAsync({}, function (err) {
+                if (err) {
+                    return callback(err);
+                }
+
+                client.selectProjectAsync(QueryString.project, function (err) {
+                    if (err) {
+                        return callback(err);
+                    }
+
+                    client.selectBranchAsync('master', function (err) {
+                        if (err) {
+                            return callback(err);
+                        }
+
+                        //now we should make the UI
+                        initializeSelectBox(selectionChanged);
+                        client.addUI(UI,territoryEvent,'myUIidentifier');
+                        client.updateTerritory('myUIidentifier',patterns);
+                    });
+                });
+            });
+        }
+        var myInit = function () {
+            console.log('myInit function was called');
+            if (checkParameters()) {
+                initializeWebGME(function(err){
+                    if(err){
+                        console.log('something went wrong - refresh the page', err);
+                    }
+                    else {
+                        console.log('webgme connection has been established so we are ready for work');
+                    }
+                });
+            } else {
+                console.log('wrong parameter list, must refresh page');
+            }
+        };
+
+    </script>
 </head>
 
 <body on-gme-init="myInit()">
+<select></select>
+
 <div id="content">
 </div>
 </body>

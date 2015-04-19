@@ -11,4 +11,6 @@ config.plugin.basePaths.push('./src/plugins');
 
 config.mongo.uri = 'mongodb://127.0.0.1:27017/RTL';
 
+config.plugin.allowServerExecution = true;
+
 module.exports = config;
