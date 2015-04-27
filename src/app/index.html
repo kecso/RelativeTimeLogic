@@ -74,51 +74,103 @@
     </script>
     <!--plotting-->
     <script type="text/javascript">
-        function plotting(raw) {
-            var keys = Object.keys(raw.data),
-                    i, j, k,
-                    key,
-                    placeholders = [],
-                    dataSeries = [],
-                    singleLine = {},
-                    content = $('#content');
+        var plotting = function(){};
+        if(QueryString && QueryString.combined && QueryString.combined === 'true'){
+            plotting = function(raw) {
+                var keys = Object.keys(raw.data),
+                        i, j, k,
+                        key,
+                        placeholders = [],
+                        dataSeries = [],
+                        singleLine = {},
+                        content = $('#content');
 
-            content.empty();
+                content.empty();
 
-            for (i = 0; i < keys.length; i++) {
-                key = keys[i].split('_');
-                if (placeholders.indexOf(key[0]) === -1) {
-                    //new placeholder
-                    placeholders.push(key[0]);
-                    content.append('<input type="checkbox" id="' + key[0] + 'Check" myCont="' + key[0] +
-                                         'Container" />' + key[0] + '<br /><div class="demo-container" id="' + key[0] +
-                                         'Container"><div class="demo-placeholder" id="' + key[0] +
-                                         'Placeholder"></div></div>');
-                    $('#' + key[0] + 'Check').click(function () {
-                        if ($(this).is(':checked')) {
-                            $('#' + $(this).attr('myCont')).show();
-                        } else {
-                            $('#' + $(this).attr('myCont')).hide();
-                        }
-                    }).prop('checked', true);
+                for (i = 0; i < keys.length; i++) {
+                    key = keys[i].split('_');
+                    if (placeholders.indexOf(key[0]) === -1) {
+                        //new placeholder
+                        placeholders.push(key[0]);
+                        content.append('<input type="checkbox" id="' + key[0] + 'Check" myCont="' + key[0] +
+                                       'Container" />' + key[0] + '<br /><div class="demo-container" id="' + key[0] +
+                                       'Container"><div class="demo-placeholder" id="' + key[0] +
+                                       'Placeholder"></div></div>');
+                        $('#' + key[0] + 'Check').click(function () {
+                            if ($(this).is(':checked')) {
+                                $('#' + $(this).attr('myCont')).show();
+                            } else {
+                                $('#' + $(this).attr('myCont')).hide();
+                            }
+                        }).prop('checked', true);
 
-                }
-            }
-
-            for (i = 0; i < placeholders.length; i++) {
-                dataSeries = [];
-                for (j = 0; j < keys.length; j++) {
-                    key = keys[j].split('_');
-                    if (placeholders[i] === key[0]) {
-                        singleLine = {label: keys[j], data: []};
-                        for (k = 0; k < raw.timeLine.length; k++) {
-                            singleLine.data.push([raw.timeLine[k], raw.data[keys[j]][k]]);
-                        }
-                        dataSeries.push(singleLine);
                     }
                 }
-                $.plot('#' + placeholders[i] + "Placeholder", dataSeries, {});
-                content.show();
+
+                for (i = 0; i < placeholders.length; i++) {
+                    dataSeries = [];
+                    for (j = 0; j < keys.length; j++) {
+                        key = keys[j].split('_');
+                        if (placeholders[i] === key[0]) {
+                            singleLine = {label: keys[j], data: []};
+                            for (k = 0; k < raw.timeLine.length; k++) {
+                                singleLine.data.push([raw.timeLine[k], raw.data[keys[j]][k]]);
+                            }
+                            dataSeries.push(singleLine);
+                        }
+                    }
+                    $.plot('#' + placeholders[i] + "Placeholder", dataSeries, {});
+                    content.show();
+                }
+            }
+        } else {
+
+            plotting = function(raw) {
+                var keys = Object.keys(raw.data),
+                        i, j, k,
+                        key,
+                        placeholders = [],
+                        dataSeries = [],
+                        singleLine = {},
+                        content = $('#content');
+
+                content.empty();
+
+                for (i = 0; i < keys.length; i++) {
+                    key = [keys[i]];
+                    if (placeholders.indexOf(key[0]) === -1) {
+                        //new placeholder
+                        placeholders.push(key[0]);
+                        content.append('<input type="checkbox" id="' + key[0] + 'Check" myCont="' + key[0] +
+                                       'Container" />' + key[0] + '<br /><div class="demo-container" id="' + key[0] +
+                                       'Container"><div class="demo-placeholder" id="' + key[0] +
+                                       'Placeholder"></div></div>');
+                        $('#' + key[0] + 'Check').click(function () {
+                            if ($(this).is(':checked')) {
+                                $('#' + $(this).attr('myCont')).show();
+                            } else {
+                                $('#' + $(this).attr('myCont')).hide();
+                            }
+                        }).prop('checked', true);
+
+                    }
+                }
+
+                for (i = 0; i < placeholders.length; i++) {
+                    dataSeries = [];
+                    for (j = 0; j < keys.length; j++) {
+                        key = [keys[j]];
+                        if (placeholders[i] === key[0]) {
+                            singleLine = {label: keys[j], data: []};
+                            for (k = 0; k < raw.timeLine.length; k++) {
+                                singleLine.data.push([raw.timeLine[k], raw.data[keys[j]][k]]);
+                            }
+                            dataSeries.push(singleLine);
+                        }
+                    }
+                    $.plot('#' + placeholders[i] + "Placeholder", dataSeries, {});
+                    content.show();
+                }
             }
         }
     </script>
